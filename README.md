@@ -2,9 +2,7 @@
 
 ## What
 
-Print the info from a local `gguf` LLM format file.
-
-Array values over length 50 are truncated.
+gguf-info reads a local `gguf` format LLM file and prints out details.
 
 e.g.
 
