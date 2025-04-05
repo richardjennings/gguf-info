@@ -39,6 +39,17 @@ Header:
                 * tokenizer.ggml.unknown_token_id=100
                 * tokenizer.ggml.seperator_token_id=102
                 * tokenizer.ggml.padding_token_id=0
+        Tensors:
+                * name:       token_embd_norm.bias
+                  dimensions: 1, [768]
+                  type:       GGML_TYPE_F32
+                  offset:     0
+                * name:       token_embd_norm.weight
+                  dimensions: 1, [768]
+                  type:       GGML_TYPE_F32
+                  offset:     3072
+                * name:       token_types.weight
+                  ...
 ```
 
 To view a specific metadata key (in full), use `--metadata-key` or `-m`, e.g. 

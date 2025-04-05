@@ -18,6 +18,7 @@ type (
 		TensorCount     uint64
 		MetadataKvCount uint64
 		MetadataKV      []MetadataKV
+		TensorInfo      []TensorInfo
 	}
 	MetadataKV struct {
 		Key               String
@@ -25,7 +26,7 @@ type (
 		Value             Value
 	}
 	TensorInfo struct {
-		Name        string   // it must be at most 64 bytes long
+		Name        String   // it must be at most 64 bytes long
 		NDimensions uint32   // currently at most 4
 		Dimensions  []uint64 // e.g. [4096, 32000]
 		Type        Type
@@ -222,6 +223,29 @@ func (g *GGUF) readHeader(f *os.File) error {
 		}
 		g.Header.MetadataKV = append(g.Header.MetadataKV, mkv)
 	}
+	var err error
+	for i := 0; i < int(g.Header.TensorCount); i++ {
+		t := TensorInfo{}
+		t.Name, err = g.readString(f)
+		if err != nil {
+			return err
+		}
+		t.NDimensions, err = g.readUint32(f)
+		for j := 0; j < int(t.NDimensions); j++ {
+			v, err := g.readUint64(f)
+			if err != nil {
+				return err
+			}
+			t.Dimensions = append(t.Dimensions, v)
+		}
+		typ, err := g.readUint32(f)
+		if err != nil {
+			return err
+		}
+		t.Type = Type(typ)
+		t.Offset, err = g.readUint64(f)
+		g.Header.TensorInfo = append(g.Header.TensorInfo, t)
+	}
 
 	return nil
 }
@@ -255,6 +279,17 @@ func (g *GGUF) Out(w io.Writer) error {
 			return err
 		}
 		_, err = w.Write([]byte("\n"))
+	}
+
+	if g.Header.TensorCount == 0 {
+		return nil
+	}
+	_, err = fmt.Fprintf(w, "\tTensors:\n")
+	for _, v := range g.Header.TensorInfo {
+		_, err = fmt.Fprintf(w, "\t\t* name:       %s\n", string(v.Name.Char))
+		_, err = fmt.Fprintf(w, "\t\t  dimensions: %d, %v\n", v.NDimensions, v.Dimensions)
+		_, err = fmt.Fprintf(w, "\t\t  type:       %s\n", v.Type)
+		_, err = fmt.Fprintf(w, "\t\t  offset:     %d\n", v.Offset)
 	}
 
 	return err
